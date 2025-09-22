@@ -1,9 +1,6 @@
 name: VXN
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
   schedule:
     - cron: "0 */2 * * *"  # Runs every 2 hours
@@ -37,13 +34,11 @@ jobs:
       # Step 5: Make shell scripts executable
       - name: Make shell scripts executable
         run: |
-          chmod +x news/engine/filter.sh
-          chmod +x news/engine/vidmaker.sh
-          chmod +x news/engine/social.sh
+          chmod +x filter.sh
+          chmod +x vidmaker.sh
+          chmod +x social.sh
 
-      # Step 6: Run the full news pipeline
-      - name: Run news pipeline
-        working-directory: news
+      - name: Run VXN News
         run: python3 main.py
 
       # Step 7: Commit and push headlines.txt if updated
