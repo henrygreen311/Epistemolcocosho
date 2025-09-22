@@ -31,21 +31,23 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg bc jq mpv
           
+      # Step 5: Setup Google Cloud key (decode from base64)
       - name: Setup GC Key
         run: |
-          echo "${{ secrets.GCP_KEY }}" > key.json
+          echo "${{ secrets.GCP_KEY }}" | base64 -d > key.json
 
-      # Step 5: Make shell scripts executable
+      # Step 6: Make shell scripts executable
       - name: Make shell scripts executable
         run: |
           chmod +x filter.sh
           chmod +x vidmaker.sh
           chmod +x social.sh
 
+      # Step 7: Run main pipeline
       - name: Run VXN News
         run: python3 main.py
 
-      # Step 7: Commit and push headlines.txt if updated
+      # Step 8: Commit and push headlines.txt if updated
       - name: Commit and push headlines.txt
         run: |
           git config user.name "github-actions"
