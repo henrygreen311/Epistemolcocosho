@@ -1,35 +1,65 @@
+import subprocess
 import requests
+import os
 
 PAGE_ID = "796052743592190"
 ACCESS_TOKEN = "EAAVQdbJuFuMBPq50S5TCV29w998qEKaBiqzsHuQrKqwxe8vAgSdsbq3d2Q77WiIgasBJZAkWq4ljHOnLap7r0LAcZBrQp1fPrLxNMRIe8uOfrbBgt5RmHat08wYBazH5uiTu4VBwbJzDbDZA19UaiYLHkT3nusQXaE4FNXZCDCkVkC7W3KOd8LChHgpkq8IkA1KZAsZA7B"
 
-VIDEO_FILE = "news.mp4"
+FULL_VIDEO = "news.mp4"
+REEL_VIDEO = "news_reel.mp4"
 COMMENT_FILE = "comment.txt"
 
 
-def post_video_to_facebook(video_file, comment_file):
-    # Read caption from comment.txt
-    with open(comment_file, "r", encoding="utf-8") as f:
-        caption = f.read().strip()
+def trim_video(input_file, output_file, duration=90):
+    """Trim the first `duration` seconds of the video"""
+    if os.path.exists(output_file):
+        os.remove(output_file)
 
-    url = f"https://graph.facebook.com/v21.0/{PAGE_ID}/videos"
+    cmd = [
+        "ffmpeg",
+        "-y",  # overwrite output file
+        "-i", input_file,
+        "-t", str(duration),
+        "-c", "copy",
+        output_file
+    ]
+    subprocess.run(cmd, check=True)
+    print(f"🎬 Trimmed reel saved to {output_file}")
+
+
+def upload_video(endpoint, video_file, caption):
+    """Upload a video to a given Graph API endpoint"""
+    url = f"https://graph.facebook.com/v21.0/{PAGE_ID}/{endpoint}"
     params = {
         "access_token": ACCESS_TOKEN,
         "description": caption,
         "title": "Automated Upload"
     }
-
     files = {
         "source": open(video_file, "rb")
     }
-
     response = requests.post(url, params=params, files=files)
 
     if response.status_code == 200:
-        print("✅ Video uploaded successfully:", response.json())
+        print(f"✅ Uploaded to {endpoint}:", response.json())
     else:
-        print("❌ Error:", response.status_code, response.text)
+        print(f"❌ Error uploading to {endpoint}:", response.status_code, response.text)
+
+
+def main():
+    # Read caption
+    with open(COMMENT_FILE, "r", encoding="utf-8") as f:
+        caption = f.read().strip()
+
+    # Step 1: Trim first 90s for Reels
+    trim_video(FULL_VIDEO, REEL_VIDEO, duration=90)
+
+    # Step 2: Upload Reel
+    upload_video("video_reels", REEL_VIDEO, caption + "\n\n▶ Full video on our Page!")
+
+    # Step 3: Upload Full Video
+    upload_video("videos", FULL_VIDEO, caption)
 
 
 if __name__ == "__main__":
-    post_video_to_facebook(VIDEO_FILE, COMMENT_FILE)
+    main()
