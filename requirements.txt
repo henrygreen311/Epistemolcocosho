@@ -1,0 +1,13 @@
+# Core HTTP requests for slug, stream, downloader, gemini
+requests>=2.31.0
+
+# Google Cloud Text-to-Speech client for voice.py
+google-cloud-texttospeech>=2.16.0
+google-api-core>=2.11.0
+
+# Optional audio/voice processing if needed in voice.py
+pydub>=0.25.1
+gTTS>=2.3.2
+
+# Optional numerical processing if any math operations in scripts
+numpy>=1.27.0
