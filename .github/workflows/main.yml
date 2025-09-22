@@ -31,9 +31,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg bc jq mpv
           
-       - name: Setup GC Key
-  run: |
-    echo "${{ secrets.GCP_KEY }}" > key.json
+      - name: Setup GC Key
+        run: |
+          echo "${{ secrets.GCP_KEY }}" > key.json
 
       # Step 5: Make shell scripts executable
       - name: Make shell scripts executable
