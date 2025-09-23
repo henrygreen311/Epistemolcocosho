@@ -16,16 +16,29 @@ def read_video_url():
         print("stream.txt not found")
         return None
 
-def download_video(video_url, output_file="vid.MP4"):
-    """Download video from URL and save to output_file"""
+def read_preview_url():
+    """Read the first preview URL from preview.txt"""
     try:
-        response = requests.get(video_url, stream=True)
+        with open("preview.txt", "r", encoding="utf-8") as f:
+            preview_url = f.readline().strip()
+        if not preview_url:
+            print("No URL found in preview.txt")
+            return None
+        return preview_url
+    except FileNotFoundError:
+        print("preview.txt not found")
+        return None
+
+def download_file(file_url, output_file):
+    """Generic downloader for video/preview resources"""
+    try:
+        response = requests.get(file_url, stream=True)
     except Exception as e:
-        print(f"Failed to download video: {e}")
+        print(f"Failed to download file: {e}")
         return False
 
     if response.status_code != 200:
-        print(f"Failed to download video. HTTP status: {response.status_code}")
+        print(f"Failed to download file. HTTP status: {response.status_code}")
         return False
 
     total_downloaded = 0
@@ -46,11 +59,29 @@ def download_video(video_url, output_file="vid.MP4"):
     print(f"\nDownload complete: {output_file}")
     return True
 
-def run():
-    """Convenience function to read URL from stream.txt and download it"""
-    video_url = read_video_url()
-    if not video_url:
-        return False  # <-- return False instead of sys.exit
+def download_video(video_url, output_file="vid.MP4"):
+    """Download video from URL and save to output_file"""
+    return download_file(video_url, output_file)
 
-    success = download_video(video_url)
-    return success
+def download_preview(preview_url, output_file="preview.jpg"):
+    """Download preview from URL and save to output_file"""
+    return download_file(preview_url, output_file)
+
+def run():
+    """Convenience function to read URLs and download them"""
+    video_url = read_video_url()
+    preview_url = read_preview_url()
+
+    results = {"video": False, "preview": False}
+
+    if video_url:
+        results["video"] = download_video(video_url)
+    else:
+        print("Skipping video download.")
+
+    if preview_url:
+        results["preview"] = download_preview(preview_url)
+    else:
+        print("Skipping preview download.")
+
+    return results
