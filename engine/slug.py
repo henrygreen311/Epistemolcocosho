@@ -96,14 +96,7 @@ def filter_and_save_url():
 
     today = datetime.now().strftime("%Y-%m-%d")
 
-    # Rotate headlines.txt by date
-    if os.path.exists(headlines_file):
-        with open(headlines_file, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-        has_today = any(line.startswith(today) for line in lines)
-        if not has_today:
-            open(headlines_file, "w", encoding="utf-8").close()
-
+    # Track already saved headlines (all-time, not just today)
     existing_headlines = set()
     if os.path.exists(headlines_file):
         with open(headlines_file, "r", encoding="utf-8") as f:
