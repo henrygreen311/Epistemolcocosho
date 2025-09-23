@@ -1,7 +1,6 @@
 def make_comment():
     input_file = "gemini.txt"
     output_file = "comment.txt"
-    extra_line = "GET MORE SOURCE:: https://rebrand.ly/VNX"
 
     # Define your news hashtags
     hashtags = "#BreakingNews #NewsUpdate #WorldNews #Trending #VXN"
@@ -12,7 +11,7 @@ def make_comment():
             content = f.read().strip()  # remove trailing/leading spaces
 
         # Build new content with spacing and hashtags
-        new_content = f"{content}\n\n{extra_line}\n\n{hashtags}\n"
+        new_content = f"{content}\n\n{hashtags}\n"
 
         # Save to comment.txt
         with open(output_file, "w", encoding="utf-8") as f:
