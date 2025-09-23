@@ -8,6 +8,7 @@ ACCESS_TOKEN = "EAAVQdbJuFuMBPq50S5TCV29w998qEKaBiqzsHuQrKqwxe8vAgSdsbq3d2Q77WiI
 FULL_VIDEO = "news.mp4"
 REEL_VIDEO = "news_reel.mp4"
 COMMENT_FILE = "comment.txt"
+PREVIEW_IMAGE = "preview.jpg"
 
 
 def trim_video(input_file, output_file, duration=90):
@@ -28,7 +29,7 @@ def trim_video(input_file, output_file, duration=90):
 
 
 def upload_video(endpoint, video_file, caption):
-    """Upload a video to a given Graph API endpoint"""
+    """Upload a video to a given Graph API endpoint with optional thumbnail"""
     url = f"https://graph.facebook.com/v21.0/{PAGE_ID}/{endpoint}"
     params = {
         "access_token": ACCESS_TOKEN,
@@ -38,6 +39,11 @@ def upload_video(endpoint, video_file, caption):
     files = {
         "source": open(video_file, "rb")
     }
+
+    # Attach preview.jpg if available
+    if os.path.exists(PREVIEW_IMAGE):
+        files["thumb"] = open(PREVIEW_IMAGE, "rb")
+
     response = requests.post(url, params=params, files=files)
 
     if response.status_code == 200:
@@ -54,10 +60,10 @@ def main():
     # Step 1: Trim first 90s for Reels
     trim_video(FULL_VIDEO, REEL_VIDEO, duration=90)
 
-    # Step 2: Upload Reel
+    # Step 2: Upload Reel with preview.jpg as thumbnail
     upload_video("video_reels", REEL_VIDEO, caption + "\n\n▶ Full video on our Page!")
 
-    # Step 3: Upload Full Video
+    # Step 3: Upload Full Video with preview.jpg as thumbnail
     upload_video("videos", FULL_VIDEO, caption)
 
 
