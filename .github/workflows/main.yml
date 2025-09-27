@@ -32,7 +32,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg bc jq mpv
-          
+
       # Step 5: Setup Google Cloud key (decode from base64)
       - name: Setup GC Key
         run: |
@@ -70,5 +70,6 @@ jobs:
             fi
           else
             echo "No headlines.txt file found, skipping commit."
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
