@@ -6,23 +6,22 @@ from googleapiclient.http import MediaFileUpload
 from googleapiclient.errors import HttpError
 
 # --- Settings ---
-TOKEN_FILE = "token.json"           # Your OAuth token file
-VIDEO_FILE = "news.mp4"             # Video to upload
-THUMBNAIL_FILE = "preview.jpg"      # Thumbnail image
-DESCRIPTION_FILE = "comment.txt"    # Video description
-URL_FILE = "URL.txt"                # File containing the URL
-TAGS = ["news", "automation"]       # Video tags
-CATEGORY_ID = "25"                  # News & Politics
-PRIVACY_STATUS = "public"           # public/private/unlisted
+TOKEN_FILE = "token.json"
+VIDEO_FILE = "news.mp4"
+THUMBNAIL_FILE = "preview.jpg"
+DESCRIPTION_FILE = "comment.txt"
+URL_FILE = "URL.txt"
+TAGS = ["news", "automation"]
+CATEGORY_ID = "25"
+PRIVACY_STATUS = "public"
 
-# --- Authenticate with token.json ---
+# --- Authenticate ---
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload",
           "https://www.googleapis.com/auth/youtube"]
-
 creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
 youtube = build("youtube", "v3", credentials=creds)
 
-# --- Read video description ---
+# --- Read description ---
 with open(DESCRIPTION_FILE, "r", encoding="utf-8") as f:
     description = f.read()
 
@@ -30,14 +29,14 @@ with open(DESCRIPTION_FILE, "r", encoding="utf-8") as f:
 with open(URL_FILE, "r", encoding="utf-8") as f:
     url = f.read().strip()
 
-# Parse the URL and extract the last part after '/'
 parsed_url = urlparse(url)
-headline = os.path.basename(parsed_url.path)  # e.g. file-key-attendees-of-chinas-sept-3-military-parade-including-putin-and-kim
+path_parts = parsed_url.path.strip("/").split("/")
+headline = path_parts[-2]  # SECOND-TO-LAST PART is the headline
 
-TITLE = headline.replace("-", " ").capitalize()  # Optional: replace hyphens with spaces for better readability
+TITLE = headline.replace("-", " ").capitalize()
 
 try:
-    # --- Upload the video ---
+    # --- Upload video ---
     print("Uploading video...")
     request = youtube.videos().insert(
         part="snippet,status",
@@ -48,9 +47,7 @@ try:
                 "tags": TAGS,
                 "categoryId": CATEGORY_ID
             },
-            "status": {
-                "privacyStatus": PRIVACY_STATUS
-            }
+            "status": {"privacyStatus": PRIVACY_STATUS}
         },
         media_body=MediaFileUpload(VIDEO_FILE)
     )
@@ -58,7 +55,7 @@ try:
     video_id = response["id"]
     print(f"✅ Video uploaded successfully! Video ID: {video_id}")
 
-    # --- Set the thumbnail ---
+    # --- Upload thumbnail ---
     print("Uploading thumbnail...")
     youtube.thumbnails().set(
         videoId=video_id,
