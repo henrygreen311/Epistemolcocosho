@@ -24,20 +24,18 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          # Install YouTube API dependencies
-          pip install --upgrade google-api-python-client google-auth google-auth-httplib2 google-auth-oauthlib
 
       # Step 4: Install system dependencies
       - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg bc jq mpv
-
+          
       # Step 5: Setup Google Cloud key (decode from base64)
       - name: Setup GC Key
         run: |
           echo "${{ secrets.GCP_KEY }}" | base64 -d > key.json
-
+          
       # Step 5b: Setup YouTube token (decode from base64)
       - name: Setup YouTube token
         run: |
@@ -70,6 +68,6 @@ jobs:
             fi
           else
             echo "No headlines.txt file found, skipping commit."
-        shell: bash
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
