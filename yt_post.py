@@ -1,4 +1,5 @@
 import os
+from urllib.parse import urlparse
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
@@ -9,7 +10,7 @@ TOKEN_FILE = "token.json"           # Your OAuth token file
 VIDEO_FILE = "news.mp4"             # Video to upload
 THUMBNAIL_FILE = "preview.jpg"      # Thumbnail image
 DESCRIPTION_FILE = "comment.txt"    # Video description
-TITLE = "Automated News Upload"     # Video title
+URL_FILE = "URL.txt"                # File containing the URL
 TAGS = ["news", "automation"]       # Video tags
 CATEGORY_ID = "25"                  # News & Politics
 PRIVACY_STATUS = "public"           # public/private/unlisted
@@ -24,6 +25,16 @@ youtube = build("youtube", "v3", credentials=creds)
 # --- Read video description ---
 with open(DESCRIPTION_FILE, "r", encoding="utf-8") as f:
     description = f.read()
+
+# --- Extract headline from URL.txt ---
+with open(URL_FILE, "r", encoding="utf-8") as f:
+    url = f.read().strip()
+
+# Parse the URL and extract the last part after '/'
+parsed_url = urlparse(url)
+headline = os.path.basename(parsed_url.path)  # e.g. file-key-attendees-of-chinas-sept-3-military-parade-including-putin-and-kim
+
+TITLE = headline.replace("-", " ").capitalize()  # Optional: replace hyphens with spaces for better readability
 
 try:
     # --- Upload the video ---
