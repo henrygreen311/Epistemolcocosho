@@ -96,7 +96,7 @@ def run_pipeline():
         # Step 10: Run yt_post.py
         print("Running yt_post.py...")
         if not run_command("python3 yt_post.py", cwd=os.path.dirname(__file__)):
-            print("yt_post.py failed, continuing..."
+            print("yt_post.py failed, continuing...")
 
         print("Pipeline complete!")
         break
