@@ -30,7 +30,7 @@ ffmpeg -y -f concat -safe 0 -i "$tmpfile" -c:v libx264 -c:a aac temp_video.mp4
 
 # Merge original video audio + news narration
 ffmpeg -y -i temp_video.mp4 -i "$AUDIO" \
-  -filter_complex "[0:a]volume=0.5[a0];[1:a]volume=1.5[a1];[a0][a1]amix=inputs=2:normalize=1[outa]" \
+  -filter_complex "[0:a]volume=0.3[a0];[1:a]volume=1.9[a1];[a0][a1]amix=inputs=2:normalize=1[outa]" \
   -map 0:v:0 -map "[outa]" \
   -c:v libx264 -c:a aac "$OUTPUT"
 
