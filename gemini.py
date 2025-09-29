@@ -28,7 +28,7 @@ Include details such as escalation of conflict, humanitarian concerns, and broad
 Credit VXN as the source.  
 Also note that the footage was uploaded today, but avoid stage directions, URLs, or formatting.
 
-At the end of the script, say: "Thank you for listening. Please follow or subscribe to get more updates from VXN News.
+At the end of the script, say: "Thank you for listening. Please follow or subscribe to get more updates from VXN News."
 
 Headline: {headline_slug}
 """
@@ -38,24 +38,30 @@ endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:gen
 headers = {"Content-Type": "application/json"}
 data = {"contents": [{"parts": [{"text": prompt}]}]}
 
-while True:
+max_retries = 50
+retry_delay = 20  # seconds
+
+for attempt in range(1, max_retries + 1):
     response = requests.post(f"{endpoint}?key={API_KEY}", headers=headers, data=json.dumps(data))
 
     if response.status_code == 200:
         try:
             result = response.json()
             text_output = result["candidates"][0]["content"]["parts"][0]["text"]
-            break  # ✅ Success, exit loop
+            print("✅ Success")
+            break
         except (KeyError, IndexError):
             text_output = "Error: Could not parse Gemini response."
             break
-    elif response.status_code == 500:
-        print("Internal server error (500). Retrying...")
-        time.sleep(2)  # small delay before retry
-        continue
     else:
-        text_output = f"Error {response.status_code}: {response.text}"
-        break
+        print(f"⚠️ Attempt {attempt} failed with {response.status_code}: {response.text}")
+        if attempt < max_retries:
+            print(f"Retrying in {retry_delay} seconds...")
+            time.sleep(retry_delay)
+            continue
+        else:
+            text_output = f"Error {response.status_code}: {response.text}"
+            break
 
 # --- Step 5: Save to file ---
 with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
