@@ -46,7 +46,7 @@ jobs:
       # Step 5b: Setup YouTube token (decode from base64)
       - name: Setup YouTube token
         run: |
-          echo "${{ secrets.TOKEN_KEY }}" | base64 -d > token_v2.json
+          echo "${{ secrets.TOKEN_V2_KEY }}" | base64 -d > token_v2.json
 
       # Step 6: Make shell scripts executable
       - name: Make shell scripts executable
