@@ -1,6 +1,7 @@
 import requests
 import json
 import re
+import time
 
 # --- Config ---
 API_KEY = "AIzaSyCyvjN_7_kDRU8p0J3ANhbTpQwjcHrJ1gc"
@@ -24,7 +25,7 @@ prompt = f"""
 Rewrite the following headline into a professional, extended voice-over news script for video reporting.  
 The script should be a single continuous paragraph, long enough to cover at least 30 seconds of narration.  
 Include details such as escalation of conflict, humanitarian concerns, and broader regional implications.  
-Credit VXN as the source instead of Reuters.  
+Credit VXN as the source.  
 Also note that the footage was uploaded today, but avoid stage directions, URLs, or formatting.
 
 At the end of the script, say: "Thank you for listening. Please follow or subscribe to get more updates from VXN News.
@@ -32,26 +33,29 @@ At the end of the script, say: "Thank you for listening. Please follow or subscr
 Headline: {headline_slug}
 """
 
-# --- Step 4: Call Gemini API ---
+# --- Step 4: Call Gemini API with retry ---
 endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent"
-
 headers = {"Content-Type": "application/json"}
-data = {
-    "contents": [
-        {"parts": [{"text": prompt}]}
-    ]
-}
+data = {"contents": [{"parts": [{"text": prompt}]}]}
 
-response = requests.post(f"{endpoint}?key={API_KEY}", headers=headers, data=json.dumps(data))
+while True:
+    response = requests.post(f"{endpoint}?key={API_KEY}", headers=headers, data=json.dumps(data))
 
-if response.status_code == 200:
-    result = response.json()
-    try:
-        text_output = result["candidates"][0]["content"]["parts"][0]["text"]
-    except (KeyError, IndexError):
-        text_output = "Error: Could not parse Gemini response."
-else:
-    text_output = f"Error {response.status_code}: {response.text}"
+    if response.status_code == 200:
+        try:
+            result = response.json()
+            text_output = result["candidates"][0]["content"]["parts"][0]["text"]
+            break  # ✅ Success, exit loop
+        except (KeyError, IndexError):
+            text_output = "Error: Could not parse Gemini response."
+            break
+    elif response.status_code == 500:
+        print("Internal server error (500). Retrying...")
+        time.sleep(2)  # small delay before retry
+        continue
+    else:
+        text_output = f"Error {response.status_code}: {response.text}"
+        break
 
 # --- Step 5: Save to file ---
 with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
