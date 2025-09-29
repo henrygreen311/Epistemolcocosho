@@ -7,6 +7,7 @@ from googleapiclient.errors import HttpError
 
 # --- Settings ---
 TOKEN_FILE = "token.json"
+FALLBACK_TOKEN_FILE = "token_v2.json"
 VIDEO_FILE = "news.mp4"
 THUMBNAIL_FILE = "preview.jpg"
 DESCRIPTION_FILE = "comment.txt"
@@ -18,8 +19,12 @@ PRIVACY_STATUS = "public"
 # --- Authenticate ---
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload",
           "https://www.googleapis.com/auth/youtube"]
-creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
-youtube = build("youtube", "v3", credentials=creds)
+
+def build_youtube_client(token_path):
+    creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+    return build("youtube", "v3", credentials=creds)
+
+youtube = build_youtube_client(TOKEN_FILE)
 
 # --- Read description ---
 with open(DESCRIPTION_FILE, "r", encoding="utf-8") as f:
@@ -32,13 +37,12 @@ with open(URL_FILE, "r", encoding="utf-8") as f:
 parsed_url = urlparse(url)
 path_parts = parsed_url.path.strip("/").split("/")
 headline = path_parts[-2]  # SECOND-TO-LAST PART is the headline
-
 TITLE = headline.replace("-", " ").capitalize()
 
-try:
+def upload_video_and_thumbnail(youtube_client):
     # --- Upload video ---
     print("Uploading video...")
-    request = youtube.videos().insert(
+    request = youtube_client.videos().insert(
         part="snippet,status",
         body={
             "snippet": {
@@ -57,11 +61,23 @@ try:
 
     # --- Upload thumbnail ---
     print("Uploading thumbnail...")
-    youtube.thumbnails().set(
+    youtube_client.thumbnails().set(
         videoId=video_id,
         media_body=MediaFileUpload(THUMBNAIL_FILE)
     ).execute()
     print("✅ Thumbnail uploaded successfully!")
 
+try:
+    upload_video_and_thumbnail(youtube)
+
 except HttpError as e:
-    print(f"An error occurred: {e}")
+    error_str = str(e)
+    if "uploadLimitExceeded" in error_str:
+        print("⚠ Upload limit exceeded. Switching to fallback token...")
+        try:
+            youtube_fallback = build_youtube_client(FALLBACK_TOKEN_FILE)
+            upload_video_and_thumbnail(youtube_fallback)
+        except HttpError as fallback_error:
+            print(f"Fallback upload also failed: {fallback_error}")
+    else:
+        print(f"An error occurred: {e}")
