@@ -43,8 +43,8 @@ jobs:
         run: |
           echo "${{ secrets.TOKEN_KEY }}" | base64 -d > token.json
           
-      # Step 5c: Setup fallback YouTube token (decode from base64)
-      - name: Setup fallback YouTube token
+      # Step 5c: Setup YouTube fallback token
+      - name: Setup YouTube fallback token
         run: |
           echo "${{ secrets.TOKEN_V2_KEY }}" | base64 -d > token_v2.json
 
@@ -59,9 +59,25 @@ jobs:
       - name: Run VXN News
         run: python3 main.py
 
-      # Step 8: Install GitHub CLI
-      - name: Install GitHub CLI
-        run: sudo apt-get install -y gh
+      # Step 8: Commit and push headlines.txt if updated
+      - name: Commit and push headlines.txt
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          if [ -f headlines.txt ]; then
+            git add headlines.txt
+            if ! git diff --cached --quiet headlines.txt; then
+              git commit -m "Update headlines.txt after pipeline run"
+              git push origin HEAD:${{ github.ref_name }}
+            else
+              echo "No changes in headlines.txt, skipping commit."
+            fi
+          else
+            echo "No headlines.txt file found, skipping commit."
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Step 9: Update GitHub Secrets with refreshed tokens
       - name: Update GitHub Secrets with refreshed tokens
@@ -81,24 +97,4 @@ jobs:
             echo "Updated TOKEN_V2_KEY secret."
           fi
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # Step 10: Commit and push headlines.txt if updated
-      - name: Commit and push headlines.txt
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-
-          if [ -f headlines.txt ]; then
-            git add headlines.txt
-            if ! git diff --cached --quiet headlines.txt; then
-              git commit -m "Update headlines.txt after pipeline run"
-              git push origin HEAD:${{ github.ref_name }}
-            else
-              echo "No changes in headlines.txt, skipping commit."
-            fi
-          else
-            echo "No headlines.txt file found, skipping commit."
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
