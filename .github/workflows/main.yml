@@ -43,8 +43,8 @@ jobs:
         run: |
           echo "${{ secrets.TOKEN_KEY }}" | base64 -d > token.json
           
-      # Step 5b: Setup YouTube token (decode from base64)
-      - name: Setup YouTube token
+      # Step 5c: Setup fallback YouTube token (decode from base64)
+      - name: Setup fallback YouTube token
         run: |
           echo "${{ secrets.TOKEN_V2_KEY }}" | base64 -d > token_v2.json
 
@@ -59,7 +59,31 @@ jobs:
       - name: Run VXN News
         run: python3 main.py
 
-      # Step 8: Commit and push headlines.txt if updated
+      # Step 8: Install GitHub CLI
+      - name: Install GitHub CLI
+        run: sudo apt-get install -y gh
+
+      # Step 9: Update GitHub Secrets with refreshed tokens
+      - name: Update GitHub Secrets with refreshed tokens
+        if: always()
+        run: |
+          echo "Checking for refreshed YouTube tokens..."
+
+          if [ -f token.json ]; then
+            TOKEN_B64=$(base64 -w 0 token.json)
+            gh secret set TOKEN_KEY --body "$TOKEN_B64"
+            echo "Updated TOKEN_KEY secret."
+          fi
+
+          if [ -f token_v2.json ]; then
+            TOKEN_V2_B64=$(base64 -w 0 token_v2.json)
+            gh secret set TOKEN_V2_KEY --body "$TOKEN_V2_B64"
+            echo "Updated TOKEN_V2_KEY secret."
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Step 10: Commit and push headlines.txt if updated
       - name: Commit and push headlines.txt
         run: |
           git config user.name "github-actions"
