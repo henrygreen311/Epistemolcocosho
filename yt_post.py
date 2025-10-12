@@ -4,6 +4,7 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from googleapiclient.errors import HttpError
+from google.auth.transport.requests import Request  # For refresh support
 
 # --- Settings ---
 TOKEN_FILE = "token.json"
@@ -17,14 +18,31 @@ CATEGORY_ID = "25"
 PRIVACY_STATUS = "public"
 
 # --- Authenticate ---
-SCOPES = ["https://www.googleapis.com/auth/youtube.upload",
-          "https://www.googleapis.com/auth/youtube"]
+SCOPES = [
+    "https://www.googleapis.com/auth/youtube.upload",
+    "https://www.googleapis.com/auth/youtube"
+]
+
+def refresh_token_if_expired(token_path):
+    """Load credentials and refresh if needed."""
+    creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+
+    if creds.expired and creds.refresh_token:
+        print(f"🔄 Token expired — refreshing {token_path} ...")
+        creds.refresh(Request())
+        with open(token_path, "w") as token:
+            token.write(creds.to_json())
+        print(f"✅ Token refreshed and saved for {token_path}.")
+    return creds
 
 def build_youtube_client(token_path):
-    creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+    creds = refresh_token_if_expired(token_path)
     return build("youtube", "v3", credentials=creds)
 
+# Initialize both tokens (ensures both can auto-refresh)
 youtube = build_youtube_client(TOKEN_FILE)
+if os.path.exists(FALLBACK_TOKEN_FILE):
+    refresh_token_if_expired(FALLBACK_TOKEN_FILE)
 
 # --- Read description ---
 with open(DESCRIPTION_FILE, "r", encoding="utf-8") as f:
@@ -73,11 +91,11 @@ try:
 except HttpError as e:
     error_str = str(e)
     if "uploadLimitExceeded" in error_str:
-        print("⚠ Upload limit exceeded. Switching to fallback token...")
+        print("⚠️ Upload limit exceeded. Switching to fallback token...")
         try:
             youtube_fallback = build_youtube_client(FALLBACK_TOKEN_FILE)
             upload_video_and_thumbnail(youtube_fallback)
         except HttpError as fallback_error:
-            print(f"Fallback upload also failed: {fallback_error}")
+            print(f"❌ Fallback upload also failed: {fallback_error}")
     else:
-        print(f"An error occurred: {e}")
+        print(f"❌ An error occurred: {e}")
