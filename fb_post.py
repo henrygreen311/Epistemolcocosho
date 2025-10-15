@@ -3,29 +3,11 @@ import requests
 import os
 
 PAGE_ID = "796052743592190"
-ACCESS_TOKEN = "EAAVQdbJuFuMBPq50S5TCV29w998qEKaBiqzsHuQrKqwxe8vAgSdsbq3d2Q77WiIgasBJZAkWq4ljHOnLap7r0LAcZBrQp1fPrLxNMRIe8uOfrbBgt5RmHat08wYBazH5uiTu4VBwbJzDbDZA19UaiYLHkT3nusQXaE4FNXZCDCkVkC7W3KOd8LChHgpkq8IkA1KZAsZA7B"
+ACCESS_TOKEN = "EAAVQdbJuFuMBPutA73VdypDMohGzlkVCOPJXqaCDn8KK0mGxwzWQ5UI4YRjLZAv2RsQtXXcZCsgmmOTiMbJkJbhxKfVCX24Ro6VGuUvHsVhl000ZCLizAElzue41mzazvT9bPJQaxeRU8qAxyeFBo3ZBH5aBTXf68kgNm0IObW5WPmqZAGF8oW5hgM7ocD5QsqQZDZD"
 
 FULL_VIDEO = "news.mp4"
-REEL_VIDEO = "news_reel.mp4"
 COMMENT_FILE = "comment.txt"
 PREVIEW_IMAGE = "preview.jpg"
-
-
-def trim_video(input_file, output_file, duration=90):
-    """Trim the first `duration` seconds of the video"""
-    if os.path.exists(output_file):
-        os.remove(output_file)
-
-    cmd = [
-        "ffmpeg",
-        "-y",  # overwrite output file
-        "-i", input_file,
-        "-t", str(duration),
-        "-c", "copy",
-        output_file
-    ]
-    subprocess.run(cmd, check=True)
-    print(f"🎬 Trimmed reel saved to {output_file}")
 
 
 def upload_video(endpoint, video_file, caption):
@@ -57,13 +39,7 @@ def main():
     with open(COMMENT_FILE, "r", encoding="utf-8") as f:
         caption = f.read().strip()
 
-    # Step 1: Trim first 90s for Reels
-    trim_video(FULL_VIDEO, REEL_VIDEO, duration=90)
-
-    # Step 2: Upload Reel with preview.jpg as thumbnail
-    upload_video("video_reels", REEL_VIDEO, caption + "\n\n▶ Full video on our Page!")
-
-    # Step 3: Upload Full Video with preview.jpg as thumbnail
+    # Upload only the full video
     upload_video("videos", FULL_VIDEO, caption)
 
 
