@@ -58,19 +58,29 @@ def fetch_reuters_json():
     print(f"Response status: {response.status_code}")
     print(f"Raw response saved to {json_path}")
 
-    # Attempt JSON parsing
+    # Attempt JSON parsing with more robust extraction
     try:
-        data = response.json()
+        # Find the first valid JSON object in the response
+        content = response.text
+        start = content.find("{")
+        end = content.rfind("}") + 1
+        if start == -1 or end == 0:
+            raise ValueError("No valid JSON object found in response")
+        json_str = content[start:end]
+        data = json.loads(json_str)
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
         print("JSON parsed and saved successfully.")
     except Exception as e:
         print(f"Failed to parse JSON: {e}")
+        # Save empty JSON to prevent downstream errors
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump({"value": {"items": []}}, f, ensure_ascii=False, indent=4)
 
     return json_path
 
 def filter_and_save_url():
-    """Filter headlines using filter.json and save new URL and headline."""
+    """Filter headlines using filter.json and save new URL and headline, trying up to 3 matches, then fall back to first non-existing headline."""
     filter_path = os.path.join(HOME_DIR, "filter.json")
     headlines_file = os.path.join(HOME_DIR, "headlines.txt")
     url_file = os.path.join(HOME_DIR, "URL.txt")
@@ -87,7 +97,10 @@ def filter_and_save_url():
     start = content.find("{")
     end = content.rfind("}") + 1
     json_str = content[start:end]
-    data = json.loads(json_str)
+    try:
+        data = json.loads(json_str)
+    except json.JSONDecodeError:
+        data = {"value": {"items": []}}  # Fallback to empty items if JSON is invalid
     items = data.get("value", {}).get("items", [])
 
     def headline_matches(headline, keywords):
@@ -106,22 +119,35 @@ def filter_and_save_url():
 
     saved_url = None
     saved_headline = None
+    match_count = 0
+    max_attempts = 3
+    first_non_existing = None
 
     for item in items:
         headline = item.get("headline", "")
         uri = item.get("uri", "")
 
         if headline.lower() in existing_headlines:
-            continue
+            continue  # Silently skip existing headlines
 
-        if headline_matches(headline, filter_words):
+        # Store first non-existing headline as fallback
+        if first_non_existing is None:
             slug = re.sub(r"[^a-zA-Z0-9\s-]", "", headline)
             slug = re.sub(r"\s+", "-", slug.strip()).lower()
             uri_b64 = base64.b64encode(uri.encode("utf-8")).decode("utf-8")
+            first_non_existing = (headline, f"https://www.reutersconnect.com/item/{slug}/{uri_b64}")
 
-            saved_url = f"https://www.reutersconnect.com/item/{slug}/{uri_b64}"
-            saved_headline = headline
-            break
+        # Check for filter word matches
+        if headline_matches(headline, filter_words):
+            match_count += 1
+            if match_count <= max_attempts:
+                saved_url = f"https://www.reutersconnect.com/item/{slug}/{uri_b64}"
+                saved_headline = headline
+                break  # Save first matching headline, as per original behavior
+
+    # If no matching headline found after max_attempts, use first non-existing headline
+    if not saved_url and first_non_existing:
+        saved_headline, saved_url = first_non_existing
 
     if saved_url and saved_headline:
         with open(url_file, "w", encoding="utf-8") as f:
@@ -130,10 +156,10 @@ def filter_and_save_url():
         with open(headlines_file, "a", encoding="utf-8") as f:
             f.write(f"{today} - {saved_headline}\n")
 
-        print("One! Saved first new headline and URL.")
+        print(f"One! Saved headline and URL{' after ' + str(match_count) + ' attempt(s)' if saved_url != first_non_existing[1] else ''}.")
         return saved_headline, saved_url
     else:
-        print("No new matching headline found (or it was already saved).")
+        print("No new headlines found.")
         return None, None
 
 # Optional: convenience function to run the full workflow
