@@ -46,7 +46,7 @@ def run_pipeline():
         print("Fetching video stream URL...")
         stream_result = run_stream()
         if not stream_result:
-            print("No video URL found — refetching news...")
+            print("No video URL found ? refetching news...")
             time.sleep(1)
             continue  # rerun news
 
@@ -54,7 +54,7 @@ def run_pipeline():
         print("Downloading video...")
         download_result = run_download()
         if not download_result:
-            print("Download failed — refetching video stream URL...")
+            print("Download failed ? refetching video stream URL...")
             time.sleep(1)
             continue  # rerun stream
 
@@ -92,6 +92,11 @@ def run_pipeline():
         print("Running fb_post.py...")
         if not run_command("python3 fb_post.py", cwd=os.path.dirname(__file__)):
             print("fb_post.py failed, continuing...")
+            
+        # Step 10: Run yt_post.py
+        print("Running yt_post.py...")
+        if not run_command("python3 yt_post.py", cwd=os.path.dirname(__file__)):
+            print("yt_post.py failed, continuing...")
 
         print("Pipeline complete!")
         break
