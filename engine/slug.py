@@ -107,6 +107,12 @@ def filter_and_save_url():
         words = re.findall(r"[a-zA-Z]+", headline.lower())
         return any(word in words for word in keywords)
 
+    def normalize_headline(headline):
+        """Normalize headline by removing extra whitespace and special characters."""
+        headline = re.sub(r"\s+", " ", headline.strip())  # Normalize whitespace
+        headline = re.sub(r"[^\w\s]", "", headline)  # Remove special characters
+        return headline.lower()
+
     today = datetime.now().strftime("%Y-%m-%d")
 
     # Track already saved headlines (all-time, not just today)
@@ -115,7 +121,8 @@ def filter_and_save_url():
         with open(headlines_file, "r", encoding="utf-8") as f:
             for line in f:
                 if " - " in line:
-                    existing_headlines.add(line.strip().split(" - ", 1)[1].lower())
+                    headline = line.strip().split(" - ", 1)[1]
+                    existing_headlines.add(normalize_headline(headline))
 
     saved_url = None
     saved_headline = None
@@ -127,7 +134,9 @@ def filter_and_save_url():
         headline = item.get("headline", "")
         uri = item.get("uri", "")
 
-        if headline.lower() in existing_headlines:
+        # Normalize headline for comparison
+        normalized_headline = normalize_headline(headline)
+        if normalized_headline in existing_headlines:
             continue  # Silently skip existing headlines
 
         # Store first non-existing headline as fallback
