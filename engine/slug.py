@@ -108,10 +108,16 @@ def filter_and_save_url():
         return any(word in words for word in keywords)
 
     def normalize_headline(headline):
-        """Normalize headline by removing extra whitespace and special characters."""
-        headline = re.sub(r"\s+", " ", headline.strip())  # Normalize whitespace
-        headline = re.sub(r"[^\w\s]", "", headline)  # Remove special characters
-        return headline.lower()
+        """Normalize headline by removing extra whitespace, special characters, and handling Unicode."""
+        if not headline:
+            return ""
+        # Replace multiple whitespace (including newlines, tabs) with single space
+        headline = re.sub(r"\s+", " ", headline.strip())
+        # Remove special characters, keep alphanumeric, spaces, and basic punctuation
+        headline = re.sub(r"[^\w\s-]", "", headline)
+        # Normalize Unicode characters to ASCII (e.g., smart quotes to regular quotes)
+        headline = headline.encode("ascii", "ignore").decode("ascii")
+        return headline.lower().strip()
 
     today = datetime.now().strftime("%Y-%m-%d")
 
@@ -121,8 +127,13 @@ def filter_and_save_url():
         with open(headlines_file, "r", encoding="utf-8") as f:
             for line in f:
                 if " - " in line:
-                    headline = line.strip().split(" - ", 1)[1]
-                    existing_headlines.add(normalize_headline(headline))
+                    try:
+                        headline = line.strip().split(" - ", 1)[1]
+                        normalized = normalize_headline(headline)
+                        if normalized:  # Only add non-empty normalized headlines
+                            existing_headlines.add(normalized)
+                    except IndexError:
+                        continue  # Skip malformed lines
 
     saved_url = None
     saved_headline = None
@@ -133,6 +144,8 @@ def filter_and_save_url():
     for item in items:
         headline = item.get("headline", "")
         uri = item.get("uri", "")
+        if not headline or not uri:  # Skip invalid items
+            continue
 
         # Normalize headline for comparison
         normalized_headline = normalize_headline(headline)
@@ -154,9 +167,12 @@ def filter_and_save_url():
                 saved_headline = headline
                 break  # Save first matching headline, as per original behavior
 
-    # If no matching headline found after max_attempts, use first non-existing headline
+    # If no matching headline found, use first non-existing headline after final verification
     if not saved_url and first_non_existing:
-        saved_headline, saved_url = first_non_existing
+        fallback_headline, fallback_url = first_non_existing
+        if normalize_headline(fallback_headline) not in existing_headlines:
+            saved_headline = fallback_headline
+            saved_url = fallback_url
 
     if saved_url and saved_headline:
         with open(url_file, "w", encoding="utf-8") as f:
